@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "ConsultantTest.DirWatcher": {
+      "commandName": "Project",
+      "commandLineArgs": "src=D:\\consultant res=D:\\consultant\\res"
+    }
+  }
+}
