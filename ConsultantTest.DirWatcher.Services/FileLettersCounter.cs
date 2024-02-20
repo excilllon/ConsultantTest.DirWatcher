@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Configuration;
-using System.Collections.Concurrent;
 using System.Threading.Channels;
 using ConsultantTest.DirWatcher.Abstractions;
 using Microsoft.Extensions.Logging;
@@ -7,12 +6,12 @@ using Microsoft.Extensions.Logging;
 namespace ConsultantTest.DirWatcher.Services
 {
 	/// <summary>
-	/// 
+	/// Класс подсчета букв в файлах
 	/// </summary>
 	public class FileLettersCounter : IDisposable, IFileLettersCounter
 	{
 		private readonly ILogger<FileLettersCounter> _logger;
-		Channel<string> channel = Channel.CreateUnbounded<string>(new UnboundedChannelOptions(){SingleWriter = true});
+		private readonly Channel<string> _channel = Channel.CreateUnbounded<string>(new UnboundedChannelOptions(){SingleWriter = true});
 		private int _bufferLength = 1024 * 1024;
 		private readonly string _resPath;
 		private bool _isInitialized;
@@ -25,13 +24,17 @@ namespace ConsultantTest.DirWatcher.Services
 			_resPath = config["res"];
 		}
 
+		/// <summary>
+		/// Постановка файла в очередь обработки
+		/// </summary>
+		/// <param name="fullFileName">Полный путь к файлу</param>
 		public void Enqueue(string fullFileName)
 		{
 			if (!_isInitialized)
 			{
 				StartProcessing();
 			}
-			channel.Writer.WriteAsync(fullFileName);
+			_channel.Writer.WriteAsync(fullFileName);
 		}
 
 		/// <summary>
@@ -53,7 +56,7 @@ namespace ConsultantTest.DirWatcher.Services
 						string fileName = null;
 						try
 						{
-							fileName = await channel.Reader.ReadAsync(token);
+							fileName = await _channel.Reader.ReadAsync(token);
 							var res = await CountLetters(fileName);
 							await WriteResult(fileName, res);
 							_logger.Log(LogLevel.Information, $"Файл {fileName} обработан");
@@ -102,6 +105,9 @@ namespace ConsultantTest.DirWatcher.Services
 			await reader.WriteAsync(res.ToString());
 		}
 
+		/// <summary>
+		/// При выходе из приложения вызывается cancelTokenб который прервет потоки
+		/// </summary>
 		public void Dispose()
 		{
 			_cancelTokenSource.Cancel();

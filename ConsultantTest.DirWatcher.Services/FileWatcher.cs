@@ -5,10 +5,14 @@ using Microsoft.Extensions.Logging;
 
 namespace ConsultantTest.DirWatcher.Services
 {
+	/// <summary>
+	/// Сервис для мониторинга появления файлов в папке
+	/// </summary>
 	public class FileWatcher: BackgroundService
 	{
 		private readonly IFileLettersCounter _lettersCounter;
 		private readonly ILogger<FileWatcher> _logger;
+		// возможно FileSystemWatcher не будет работать в Linux, тогда можно перейти на PhysicalFilesWatcher
 		private FileSystemWatcher _watcher;
 		private readonly string _srcPath;
 
@@ -39,7 +43,7 @@ namespace ConsultantTest.DirWatcher.Services
 			                        | NotifyFilters.LastWrite
 			                        | NotifyFilters.Security
 			                        | NotifyFilters.Size;
-
+			// перехватывает только копирование и создание файлов с раширением txt в заданную папку
 			_watcher.Created += OnCreated;
 			_watcher.Filter = "*.txt";
 			_watcher.IncludeSubdirectories = false;
@@ -53,6 +57,9 @@ namespace ConsultantTest.DirWatcher.Services
 			_lettersCounter.Enqueue(e.FullPath);
 		}
 
+		/// <summary>
+		/// Обработка существующих на момент запуска в папке файлов
+		/// </summary>
 		private void EnqueueExistingFiles()
 		{
 			foreach (var fileName in Directory.GetFiles(_srcPath,"*.txt"))
